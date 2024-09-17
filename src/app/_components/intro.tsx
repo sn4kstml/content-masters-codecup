@@ -4,8 +4,8 @@ import { sql } from "@vercel/postgres";
 import { CMS_NAME } from "@/lib/constants";
 import React from "react";
 
-const connectionString = process.env.POSTGRES_URL;
-alert(connectionString);
+const connectionString = process.env.POSTGRES_URL || "postgres://default:GLXoYv9IwQJ4@ep-summer-cloud-a22b2x5a.eu-central-1.aws.neon.tech:5432/verceldb?sslmode=require";
+
 export function Intro() {
   const fetchUsers = async () => {
     try {
