@@ -9,6 +9,7 @@ const ArticleForm = () => {
   const [tone, setTone] = useState("формальный");
   const [mode, setMode] = useState("вручную"); // Режим создания статьи
   const [generatedArticle, setGeneratedArticle] = useState(""); // Состояние для сгенерированной статьи
+  const [articles, setArticles] = useState<string[]>([]); // Состояние для хранения статей
 
   const buildRequestManual = (name: string, biography: string, phrases: string, theme: string, tone: string) => {
     const prompt = `===Instruction
@@ -73,23 +74,21 @@ const ArticleForm = () => {
       ? buildRequestManual(authorName, bio, vocabulary, theme, tone) 
       : buildRequestAuto(authorName, theme);
     
-    // Отправляем запрос на указанный API
     const response = await fetch('https://api.proxyapi.ru/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer sk-8hMBBWM4X1IjBUIKT4pfXAtqYInRTF44' // Добавляем Bearer токен
+        'Authorization': 'Bearer sk-8hMBBWM4X1IjBUIKT4pfXAtqYInRTF44'
       },
       body: JSON.stringify(requestBody),
     });
     const data = await response.json();
     const articleText = data.choices[0].message.content;
-    console.log(articleText);
-    const parsedData = JSON.parse(articleText); // Парсим строку в объект
-    
+    const parsedData = JSON.parse(articleText);
     const article = parsedData.article;
-    console.log(article); // Извлекаем статью
+
     setGeneratedArticle(article); // Устанавливаем сгенерированную статью в состояние
+    setArticles((prevArticles) => [...prevArticles, article]); // Добавляем статью в массив
   };
 
   return (
@@ -190,6 +189,16 @@ const ArticleForm = () => {
         <div className="mt-4 p-4 border border-gray-300 rounded-md">
           <h3 className="font-medium">Сгенерированная статья:</h3>
           <p>{generatedArticle}</p>
+        </div>
+      )}
+      {articles.length > 0 && (
+        <div className="mt-4 p-4 border border-gray-300 rounded-md">
+          <h3 className="font-medium">Сгенерированные статьи:</h3>
+          {articles.map((article, index) => (
+            <div key={index} className="mt-2 p-2 border border-gray-200 rounded-md">
+              <p>{article}</p>
+            </div>
+          ))}
         </div>
       )}
     </form>
