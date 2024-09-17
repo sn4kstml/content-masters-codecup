@@ -3,6 +3,7 @@ import CoverImage from "@/app/_components/cover-image";
 import { type Author } from "@/interfaces/author";
 import Link from "next/link";
 import DateFormatter from "./date-formatter";
+import ArticleForm from "@/app/_components/articleForm"; // Импортируем компонент ArticleForm
 
 type Props = {
   title: string;
@@ -24,7 +25,7 @@ export function HeroPost({
   return (
     <section>
       <div className="mb-8 md:mb-16">
-        <CoverImage title={title} src={coverImage} slug={slug} />
+        <ArticleForm /> {/* Заменяем изображение на компонент ArticleForm */}
       </div>
       <div className="md:grid md:grid-cols-2 md:gap-x-16 lg:gap-x-8 mb-20 md:mb-28">
         <div>

@@ -24,8 +24,6 @@ export default function Index() {
           slug={heroPost.slug}
           excerpt={heroPost.excerpt}
         />
-        {morePosts.length > 0 && <MoreStories posts={morePosts} />}
-        <ArticleForm /> {/* Встраиваем компонент ArticleForm */}
       </Container>
     </main>
   );
