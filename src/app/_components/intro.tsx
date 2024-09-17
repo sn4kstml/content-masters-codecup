@@ -22,12 +22,6 @@ export function Intro() {
       <h1 className="text-5xl md:text-8xl font-bold tracking-tighter leading-tight md:pr-8">
         Статья.
       </h1>
-      <button 
-        onClick={fetchUsers} 
-        className="mt-4 bg-blue-500 text-white p-2 rounded-md hover:bg-blue-600"
-      >
-        Показать пользователей
-      </button>
     </section>
   );
 }
