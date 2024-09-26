@@ -1,5 +1,5 @@
 "use client"; // Помечаем компонент как клиентский
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const ArticleForm = () => {
   const [authorName, setAuthorName] = useState("");
@@ -7,9 +7,10 @@ const ArticleForm = () => {
   const [vocabulary, setVocabulary] = useState("");
   const [theme, setTheme] = useState("");
   const [tone, setTone] = useState("формальный");
-  const [mode, setMode] = useState("вручную"); // Режим создания статьи
-  const [generatedArticle, setGeneratedArticle] = useState(""); // Состояние для сгенерированной статьи
-  const [articles, setArticles] = useState<string[]>([]); // Состояние для хранения статей
+  const [mode, setMode] = useState("вручную");
+  const [generatedArticle, setGeneratedArticle] = useState("");
+  const [articles, setArticles] = useState<string[]>([]);
+  const [searchResults, setSearchResults] = useState<string[]>([]);
 
   const buildRequestManual = (name: string, biography: string, phrases: string, theme: string, tone: string) => {
     const prompt = `===Instruction
@@ -87,8 +88,71 @@ const ArticleForm = () => {
     const parsedData = JSON.parse(articleText);
     const article = parsedData.article;
 
-    setGeneratedArticle(article); // Устанавливаем сгенерированную статью в состояние
-    setArticles((prevArticles) => [...prevArticles, article]); // Добавляем статью в массив
+    setGeneratedArticle(article);
+    setArticles((prevArticles) => [...prevArticles, article]);
+  };
+
+  const handleSaveProfile = async () => {
+    const authorData = {
+      name: authorName,
+      bio: bio,
+      keywords: `{${vocabulary.split(',').map(keyword => keyword.trim()).join(',')}}`, // Форматируем массив как строку
+      specialization: theme,
+      tone: tone,
+      generatedArticles: articles, // Добавляем сгенерированные статьи
+    };
+
+    try {
+      const response = await fetch('/api/authors', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(authorData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Неизвестная ошибка');
+      }
+
+      alert('Профиль успешно сохранен!');
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        alert('Ошибка при сохранении профиля: ' + error.message);
+      } else {
+        alert('Ошибка при сохранении профиля: Неизвестная ошибка');
+      }
+    }
+  };
+
+  const fetchSearchResults = async (authorName: string) => {
+    try {
+      const response = await fetch('/api/search?query=' + authorName, {
+        method: 'GET',
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+        }
+      });
+      const xmlText = await response.text();
+      console.log(response);
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(xmlText, "application/xml");
+      const titles = Array.from(xmlDoc.querySelectorAll("group doc title"))
+        .slice(4, 10)
+        .map(title => title.textContent || "");
+      console.log(titles);
+      setSearchResults(titles);
+    } catch (error) {
+      console.error("Ошибка при получении результатов поиска:", error);
+    }
+  };
+
+  const handleAuthorNameKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && mode === "авто") {
+      e.preventDefault(); // Предотвращаем отправку формы
+      fetchSearchResults(authorName);
+    }
   };
 
   return (
@@ -96,43 +160,59 @@ const ArticleForm = () => {
       <div className="mb-4">
         <label htmlFor="mode" className="block text-sm font-medium text-gray-700">Режим создания статьи:</label>
         <div className="flex items-center mt-2">
-        <button 
-        type="button" 
-        onClick={() => setMode("вручную")} 
-        className={`flex-1 p-2 rounded-l-md transition-all duration-300 ${mode === "вручную" ? "bg-gradient-to-r from-gray-400 to-gray-600 text-white transform scale-105" : "bg-gray-200"}`}
-      >
-        Вручную
-      </button>
-      <button 
-        type="button" 
-        onClick={() => setMode("авто")} 
-        className={`flex-1 p-2 rounded-r-md transition-all duration-300 ${mode === "авто" ? "bg-gradient-to-r from-gray-400 to-gray-600 text-white transform scale-105" : "bg-gray-200"}`}
-      >
-        Авто
-      </button>
+          <button 
+            type="button" 
+            onClick={() => setMode("вручную")} 
+            className={`flex-1 p-2 rounded-l-md transition-all duration-300 ${mode === "вручную" ? "bg-gradient-to-r from-gray-400 to-gray-600 text-white transform scale-105" : "bg-gray-200"}`}
+          >
+            Вручную
+          </button>
+          <button 
+            type="button" 
+            onClick={() => setMode("авто")} 
+            className={`flex-1 p-2 rounded-r-md transition-all duration-300 ${mode === "авто" ? "bg-gradient-to-r from-gray-400 to-gray-600 text-white transform scale-105" : "bg-gray-200"}`}
+          >
+            Авто
+          </button>
         </div>
       </div>
       <div className="mb-4">
-        <label htmlFor="authorName" className="block text-sm font-medium text-gray-700">Имя автора</label>
+        <label htmlFor="authorName" className="block text-sm font-medium text-gray-700">Имя автора (нажмите Enter)</label>
         <input
           id="authorName"
           type="text"
           value={authorName}
           onChange={(e) => setAuthorName(e.target.value)}
+          onKeyPress={handleAuthorNameKeyPress}
           required
           className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
         />
       </div>
       <div className="mb-4">
-        <label htmlFor="theme" className="block text-sm font-medium text-gray-700">Тематика</label>        
-        <input
-          id="theme"
-          type="text"
-          value={theme}
-          onChange={(e) => setTheme(e.target.value)}
-          required
-          className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
-        />
+        <label htmlFor="theme" className="block text-sm font-medium text-gray-700">Тематика</label>
+        {mode === "авто" ? (
+          <select
+            id="theme"
+            value={theme}
+            onChange={(e) => setTheme(e.target.value)}
+            required
+            className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
+          >
+            <option value="">Выберите актуальную тематику</option>
+            {searchResults.map((result, index) => (
+              <option key={index} value={result}>{result}</option>
+            ))}
+          </select>
+        ) : (
+          <input
+            id="theme"
+            type="text"
+            value={theme}
+            onChange={(e) => setTheme(e.target.value)}
+            required
+            className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
+          />
+        )}
       </div>
       {mode === "вручную" && (
         <>
@@ -185,6 +265,9 @@ const ArticleForm = () => {
         </>
       )}
       <button type="submit" className="w-full bg-blue-500 text-white p-2 rounded-md hover:bg-blue-600">Создать статью</button>
+      <button type="button" onClick={handleSaveProfile} className="w-full mt-2 bg-green-500 text-white p-2 rounded-md hover:bg-green-600">
+        Сохранить профиль
+      </button>
       {generatedArticle && (
         <div className="mt-4 p-4 border border-gray-300 rounded-md">
           <h3 className="font-medium">Сгенерированная статья:</h3>
